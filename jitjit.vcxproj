@@ -133,7 +133,8 @@
   <ItemGroup>
     <ClCompile Include="instrs.cpp" />
     <ClCompile Include="interp.cpp" />
-    <ClCompile Include="jitjit.cpp">
+    <ClCompile Include="jit.cpp" />
+    <ClCompile Include="main.cpp">
       <LanguageStandard Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">stdcpp20</LanguageStandard>
     </ClCompile>
   </ItemGroup>
@@ -141,8 +142,12 @@
     <ClInclude Include="expected.hpp" />
     <ClInclude Include="instrs.hpp" />
     <ClInclude Include="interp.hpp" />
+    <ClInclude Include="jit.hpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".clang-format" />
+    <None Include="test.asm" />
+    <None Include="test.bin" />
     <None Include="test.il" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

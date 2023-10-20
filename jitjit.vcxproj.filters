@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="jitjit.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="interp.cpp">
@@ -24,19 +24,32 @@
     <ClCompile Include="instrs.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="jit.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="interp.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="expected.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="instrs.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="interp.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="jit.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="test.il" />
+    <None Include=".clang-format" />
+    <None Include="test.bin">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="test.asm">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
