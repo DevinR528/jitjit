@@ -9,80 +9,70 @@ namespace jit {
 uint64_t Value::to_bytes() {
 	switch (_kind) {
 		case ValKind::VK_INT: {
-			auto v = (IntVal*)this;
-			return v->_val;
+			return as_int();
 		}
 		case ValKind::VK_FLOAT: {
-			auto v = (FloatVal*)this;
 			uint64_t fbits = 0;
-			memcpy(&fbits, &v->_val, sizeof(fbits));
+			float f = as_float();
+			memcpy(&fbits, &f, sizeof(fbits));
 			return fbits;
 		}
 		case ValKind::VK_STRING: {
-			auto v = (StrVal*)this;
 			assert(((void)"do something about string", false));
-			return (uintptr_t)v->_val.data();
+			return (uintptr_t)as_string().data();
+		}
+		case ValKind::VK_LOCATION: {
+			assert(((void)"do something about location", false));
+			return (uintptr_t)as_loc().data();
 		}
 		default: {
 			return 0;
 		}
 	}
 }
-Value* Value::cmp_ge(Value& b) {
+Value Value::cmp_ge(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR cmp_ge\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val >= other._val);
+	return Value((int64_t)(as_int() >= b.as_int()));
 }
-Value* Value::cmp_gt(Value& b) {
+Value Value::cmp_gt(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR cmp_gt\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val > other._val);
+	return Value((int64_t)(as_int() > b.as_int()));
 }
-Value* Value::cmp_le(Value& b) {
+Value Value::cmp_le(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR cmp_le\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val <= other._val);
+	return Value((int64_t)(as_int() <= b.as_int()));
 }
-Value* Value::cmp_lt(Value& b) {
+Value Value::cmp_lt(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR cmp_lt\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val < other._val);
+	return Value((int64_t)(as_int() < b.as_int()));
 }
 
-Value* Value::mult(Value& b) {
+Value Value::mult(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR mult\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val * other._val);
+	return Value(as_int() * b.as_int());
 }
 
-Value* Value::add(Value& b) {
+Value Value::add(Value& b) {
 	// TODO: this should tl::expected<Value*, Error>...
 	if (_kind != ValKind::VK_INT || b._kind != ValKind::VK_INT) {
 		std::cout << "NOT INT FOR add\n";
 	}
-	IntVal* self = (IntVal*)this;
-	IntVal& other = (IntVal&)b;
-	return new IntVal(self->_val + other._val);
+	return Value(as_int() + b.as_int());
 }
 
 std::ostream& operator<<(std::ostream& os, const Reg& reg) {
@@ -94,27 +84,24 @@ std::ostream& operator<<(std::ostream& os, const Value& val) {
 	os << "Val(";
 	switch (val._kind) {
 		case ValKind::VK_INT: {
-			auto& i = (IntVal&)val;
-			os << i._val;
-			break;
-		}
-		case ValKind::VK_STRING: {
-			auto& i = (StrVal&)val;
-			os << i._val;
+			os << val.as_int();
 			break;
 		}
 		case ValKind::VK_FLOAT: {
-			auto& i = (FloatVal&)val;
-			os << i._val;
+			os << val.as_float();
+			break;
+		}
+		case ValKind::VK_STRING: {
+			os << val.as_string();
 			break;
 		}
 		case ValKind::VK_LOCATION: {
-			auto& i = (LocVal&)val;
-			os << i._val;
+			os << val.as_string();
 			break;
 		}
-		default:
+		default: {
 			break;
+		}
 	}
 	os << ")";
 
@@ -146,12 +133,12 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instr) {
 		}
 		case InstrKind::IK_LOADIMM: {
 			auto& load = (LoadImmInstr&)instr;
-			os << "load " << *load._src << " -> " << load._dst;
+			os << "load " << load._src << " -> " << load._dst;
 			break;
 		}
 		case InstrKind::IK_ADDIMM: {
 			auto& add = (AddImmInstr&)instr;
-			os << "addI " << add._src1 << " + " << *add._src2 << " -> " << add._dst;
+			os << "addI " << add._src1 << " + " << add._src2 << " -> " << add._dst;
 			break;
 		}
 		case InstrKind::IK_ADD: {
@@ -161,7 +148,7 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instr) {
 		}
 		case InstrKind::IK_MULTIMM: {
 			auto& mult = (MultImmInstr&)instr;
-			os << "multI " << mult._src1 << " * " << *mult._src2 << " -> " << mult._dst;
+			os << "multI " << mult._src1 << " * " << mult._src2 << " -> " << mult._dst;
 			break;
 		}
 		case InstrKind::IK_MULT: {
@@ -192,7 +179,7 @@ std::ostream& operator<<(std::ostream& os, const Instruction& instr) {
 		}
 		case InstrKind::IK_CBR: {
 			auto& cbr = (CbrInstr&)instr;
-			os << "cbr " << cbr._src << " --> " << *cbr._dst;
+			os << "cbr " << cbr._src << " --> " << cbr._dst;
 			break;
 		}
 

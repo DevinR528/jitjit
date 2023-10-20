@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
                     auto& s = strs[1];
                     auto d = strs[3].substr(3);
                     auto inst = new jit::LoadImmInstr(
-                        new jit::IntVal{ std::stoi(s, nullptr, 10) },
+                        jit::Value{ (int64_t)std::stol(s, nullptr, 10) },
                         std::stoul(d, nullptr, 10)
                     );
                     parser.push_instr(inst);
@@ -119,7 +119,7 @@ int main(int argc, char** argv) {
                     auto d = strs[4].substr(3);
                     parser.push_instr(new jit::AddImmInstr(
                         std::stoul(s1, nullptr, 10),
-                        new jit::IntVal{ std::stoi(s2, nullptr, 10) },
+                        jit::Value{ (int64_t)std::stol(s2, nullptr, 10) },
                         std::stoul(d, nullptr, 10))
                     );
                 } catch (const std::exception&) {
@@ -149,7 +149,7 @@ int main(int argc, char** argv) {
                     auto d = strs[4].substr(3);
                     parser.push_instr(new jit::MultImmInstr(
                         std::stoul(s1, nullptr, 10),
-                        new jit::IntVal{ std::stoi(s2, nullptr, 10) },
+                        jit::Value{ (int64_t)std::stol(s2, nullptr, 10) },
                         std::stoul(d, nullptr, 10))
                     );
                 } catch (const std::exception&) {
@@ -194,7 +194,10 @@ int main(int argc, char** argv) {
                 try {
                     auto s = strs[1].substr(3);
                     auto d = strs[3];
-                    parser.push_instr(new jit::CbrInstr(std::stoul(s, nullptr, 10), new jit::LocVal{ d }));
+                    parser.push_instr(new jit::CbrInstr(
+                        std::stoul(s, nullptr, 10),
+                        jit::Value{ jit::ValKind::VK_LOCATION, d }
+                    ));
                 } catch (const std::exception&) {
                     std::cout << "Illegal argument to cbr instruction\n"
                         << line << "\n";

@@ -27,7 +27,7 @@ void Jit::write_load_jsval(const Reg& from, const MCReg& to) {
 	// The ModR/M byte for MOV is 0b10rrrmmm where rrr is dst and mmm is src
 	write_byte(0x80 | (encode(to) << 3) | encode(MCReg::RCX));
 	// Offset baybeh
-	write_dword(from._reg * 8);
+	write_dword((from._reg * sizeof(Value)) + 8);
 }
 
 // This is a register to memory move.
@@ -39,7 +39,7 @@ void Jit::write_store_jsval(const MCReg& from, const Reg& to) {
 					| (std::to_underlying(MCReg::RCX) >= 8 ? 1 << 0 : 0));
 	write_byte(0x89);
 	write_byte(0x80 | (encode(from) << 3) | encode(MCReg::RCX));
-	write_dword(to._reg * 8);
+	write_dword(to._reg * sizeof(Value) + 8);
 }
 
 // Add src and dst collecting into dst.
@@ -142,7 +142,7 @@ tl::expected<void, Error> Jit::compile() {
 			case InstrKind::IK_ADDIMM: {
 				auto add = (AddImmInstr*)inst;
 				write_load_jsval(add->_src1, MCReg::RAX);
-				write_addimm(add->_src2->to_bytes(), MCReg::RAX);
+				write_addimm((uint32_t)add->_src2.to_bytes(), MCReg::RAX);
 				write_store_jsval(MCReg::RAX, add->_dst);
 				break;
 			}
@@ -164,6 +164,8 @@ tl::expected<void, Error> Jit::compile() {
 			}
 
 			case InstrKind::IK_IWRITE: {
+				auto wrt = (IWriteInstr*)inst;
+				write_load_jsval(wrt->_src, MCReg::R8);
 				break;
 			}
 

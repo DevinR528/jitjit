@@ -17,7 +17,7 @@
 
 namespace jit {
 
-typedef uint64_t (*JitCall)(uint64_t* registers, uint64_t* locals);
+typedef uint64_t (*JitCall)(Value* registers, uint64_t* locals);
 
 enum class MCReg {
 	RAX = 0,
@@ -88,7 +88,7 @@ struct Jit {
 
 	tl::expected<void, Error> compile();
 
-	uint64_t execute(uint64_t* registers, uint64_t* globals) {
+	uint64_t execute(Value* registers, uint64_t* globals) {
 		auto val = ((JitCall)_code)(registers, globals);
 		return val;
 	}

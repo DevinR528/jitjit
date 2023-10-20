@@ -81,6 +81,7 @@ tl::expected<void, Error> Interpreter::run() {
 	auto inst = get_inst();
 	while (true) {
 		_inst_idx += 1;
+		std::cout << *inst << "\n";
 
 		switch (inst->_kind) {
 			case InstrKind::IK_LOADIMM: {
@@ -94,7 +95,7 @@ tl::expected<void, Error> Interpreter::run() {
 				if (!res) {
 					return tl::make_unexpected(res.error());
 				}
-				_registers.insert_or_assign(mov->_dst, res.value());
+				_registers.insert_or_assign(mov->_dst, *res.value());
 				break;
 			}
 
@@ -117,7 +118,7 @@ tl::expected<void, Error> Interpreter::run() {
 				if (!res) {
 					return tl::make_unexpected(res.error());
 				}
-				_registers.insert_or_assign(add->_dst, res.value()->add(*add->_src2));
+				_registers.insert_or_assign(add->_dst, res.value()->add(add->_src2));
 				break;
 			}
 			case InstrKind::IK_MULT: {
@@ -139,7 +140,7 @@ tl::expected<void, Error> Interpreter::run() {
 				if (!res) {
 					return tl::make_unexpected(res.error());
 				}
-				_registers.insert_or_assign(mult->_dst, res.value()->mult(*mult->_src2));
+				_registers.insert_or_assign(mult->_dst, res.value()->mult(mult->_src2));
 				break;
 			}
 
@@ -183,15 +184,13 @@ tl::expected<void, Error> Interpreter::run() {
 					return tl::make_unexpected(
 						Error(ErrorKind::EK_INVALID_INST, "cbr with non integer value"));
 				}
-				auto i = (IntVal*)val;
-
-				if (cmp->_dst->_kind != ValKind::VK_LOCATION) {
+				
+				if (cmp->_dst._kind != ValKind::VK_LOCATION) {
 					return tl::make_unexpected(
 						Error(ErrorKind::EK_INVALID_INST, "cbr with non location jump"));
 				}
-				auto loc = (LocVal*)cmp->_dst;
-				if (i->_val) {
-					_block_name = loc->_val;
+				if (val->as_int()) {
+					_block_name = cmp->_dst.as_loc();
 					_inst_idx = 0;
 				}
 				break;
@@ -242,14 +241,6 @@ tl::expected<void, Error> Interpreter::run() {
 			std::cout << "jit code value: " << res << "\n";
 
 			_block_name = blk._fallthrough;
-			// TODO: fix up sucks make this better
-			for (auto&& pair : _registers._reg_map) {
-				auto& [k, val] = pair;
-				if (val->_kind == ValKind::VK_INT) {
-					auto iv = (IntVal*)val;
-					iv->_val = _registers._reg_flat[k._reg];
-				}
-			}
 		}
 		inst = get_inst();
 	}

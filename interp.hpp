@@ -47,14 +47,18 @@ struct Error {
 
 struct Registers {
 	std::map<Reg, Value*> _reg_map;
-	std::vector<uint64_t> _reg_flat;
+	std::vector<Value> _reg_flat;
 
-	std::pair<std::map<Reg, Value*>::iterator, bool> insert_or_assign(Reg r, Value* v) {
+	std::pair<std::map<Reg, Value*>::iterator, bool> insert_or_assign(Reg r, Value v) {
 		if (_reg_flat.size() <= r._reg) {
 			_reg_flat.resize(r._reg + 1);
+			for (auto& p : _reg_map) {
+				auto& [k, junk_val] = p;
+				*junk_val = _reg_flat[k._reg];
+			}
 		}
-		_reg_flat[r._reg] = v->to_bytes();
-		return _reg_map.insert_or_assign(r, v);
+		_reg_flat[r._reg] = v;
+		return _reg_map.insert_or_assign(r, &_reg_flat[r._reg]);
 	}
 };
 
@@ -81,7 +85,7 @@ struct Function {
 
 struct Parser {
 	bool _in_data_section = false;
-	std::map<std::string, Value*> _globals;
+	std::map<std::string, Value> _globals;
 	std::map<std::string, Function> _funcs;
 
 	std::optional<Function> _curr_func;
@@ -98,7 +102,7 @@ struct Parser {
 };
 
 struct Interpreter {
-	std::map<std::string, Value*> _globals;
+	std::map<std::string, Value> _globals;
 	Registers _registers;
 	std::vector<std::vector<Value*>> _stack;
 
@@ -110,7 +114,7 @@ struct Interpreter {
 	uint32_t _inst_idx;
 
 	Interpreter(
-		std::map<std::string, Function> funcs, std::map<std::string, Value*> globals)
+		std::map<std::string, Function> funcs, std::map<std::string, Value> globals)
 		: _globals(globals), _funcs(funcs), _func_name("main"), _block_name("__start__"),
 		  _inst_idx(0) {
 		_stack.push_back(std::vector<Value*>());
