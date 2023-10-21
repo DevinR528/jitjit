@@ -78,11 +78,20 @@ struct Jit {
 		}
 	}
 
+	void write_qword(uint64_t val) {
+		for (size_t i = 0; i < (8 * 8); i += 8) {
+			write_byte((val >> i) & 0xff);
+		}
+	}
+
 	void write_load_jsval(const Reg& from, const MCReg& to);
+	void write_load_imm(uint64_t from, const MCReg& to);
 	void write_store_jsval(const MCReg& from, const Reg& to);
+	void write_mov(const MCReg& from, const MCReg& to);
 	void write_mult(const MCReg& from, const MCReg& to);
 	void write_add(const MCReg& from, const MCReg& to);
 	void write_addimm(uint32_t from, const MCReg& to);
+	void write_subimm(uint32_t from, const MCReg& to);
 	void write_cmplt(const MCReg& from, const MCReg& to);
 	void write_jmp(const InstrKind& kind);
 

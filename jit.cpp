@@ -13,6 +13,18 @@ namespace jit {
 
 static constexpr uint8_t encode(const MCReg& r) { return std::to_underlying(r) & 0x7; }
 
+void iwrite_call(int64_t x) { std::cout << "yo: " << x << "\n"; }
+
+// This is a register to register move.
+//
+// mov dst, src
+void Jit::write_mov(const MCReg& src, const MCReg& dst) {
+	write_byte(0x48 | (std::to_underlying(src) >= 8 ? 1 << 2 : 0) |
+			   (std::to_underlying(dst) >= 8 ? 1 << 0 : 0));
+	write_byte(0x89);
+	write_byte(0xc0 | (encode(src) << 3) | encode(dst));
+}
+
 // This is a memory to register move.
 //
 // `mov reg, [reg+offset]`
@@ -28,6 +40,15 @@ void Jit::write_load_jsval(const Reg& from, const MCReg& to) {
 	write_byte(0x80 | (encode(to) << 3) | encode(MCReg::RCX));
 	// Offset baybeh
 	write_dword((from._reg * sizeof(Value)) + 8);
+}
+
+// This is a immediate to register move.
+//
+// `mov reg, 0x1234`
+void Jit::write_load_imm(uint64_t from, const MCReg& to) {
+	write_byte(0x48 | (std::to_underlying(to) >= 8 ? 1 << 2 : 0));
+	write_byte(0xb8 | encode(to));
+	write_qword(from);
 }
 
 // This is a register to memory move.
@@ -59,6 +80,16 @@ void Jit::write_addimm(uint32_t src, const MCReg& dst) {
 	write_byte(0x48 | (std::to_underlying(dst) >= 8 ? 1 << 0 : 0));
 	write_byte(0x81);
 	write_byte(0xc0 | encode(dst));
+	write_dword(src);
+}
+
+// Sub imm and dst collecting into dst.
+//
+// sub dst, imm
+void Jit::write_subimm(uint32_t src, const MCReg& dst) {
+	write_byte(0x48 | (std::to_underlying(dst) >= 8 ? 1 << 0 : 0));
+	write_byte(0x81);
+	write_byte(0xe8 | encode(dst));
 	write_dword(src);
 }
 
@@ -104,7 +135,7 @@ void Jit::write_jmp(const InstrKind& kind) {
 		jmp_byte = 0x8d;
 	}
 	write_byte(jmp_byte);
-	write_dword(-((int64_t)_code_idx + 4));
+	write_dword(-((int64_t)_code_idx + 4 - 11));
 }
 
 tl::expected<void, Error> Jit::compile() {
@@ -113,6 +144,16 @@ tl::expected<void, Error> Jit::compile() {
 			std::cout << "Failed to set page\n";
 		}
 	}
+
+	// Push base pointer
+	write_byte(0x50 | encode(MCReg::RBP));
+	// Do preamble stuff
+	//write_mov(MCReg::RBP, MCReg::RSP);
+	// 
+	// push rdi
+	write_byte(0x50 | encode(MCReg::RDI));
+	write_subimm(32, MCReg::RSP);
+
 	InstrKind jump_kind;
 	for (auto& inst : _instrs) {
 		switch (inst->_kind) {
@@ -165,7 +206,27 @@ tl::expected<void, Error> Jit::compile() {
 
 			case InstrKind::IK_IWRITE: {
 				auto wrt = (IWriteInstr*)inst;
-				write_load_jsval(wrt->_src, MCReg::R8);
+				
+				// Push rcx and rdx
+				write_byte(0x50 | encode(MCReg::RDX));
+				write_byte(0x50 | encode(MCReg::RCX));
+
+				write_subimm(16, MCReg::RSP);
+
+				write_load_jsval(wrt->_src, MCReg::RCX);
+
+				// Load call address into rax
+				write_load_imm((intptr_t)iwrite_call, MCReg::RAX);
+
+				// Call rax
+				write_byte(0xff);
+				write_byte(0xd0);
+
+				write_addimm(16, MCReg::RSP);
+
+				// Pop rcx and rdx back to registers
+				write_byte(0x58 | encode(MCReg::RCX));
+				write_byte(0x58 | encode(MCReg::RDX));
 				break;
 			}
 
@@ -180,6 +241,16 @@ tl::expected<void, Error> Jit::compile() {
 	// After the conditional jmp what was a fall through is now
 	// RET. We know this is safe since the only way to jit is
 	// a backedge (loop) since they must run more than 1
+	//
+	// leave
+	//write_byte(0xc9);
+	// Undo the sub rsp, 8 to set up stack
+	write_addimm(32, MCReg::RSP);
+	// Pop rdi
+	write_byte(0x58 | encode(MCReg::RDI));
+	// pop base pointer
+	write_byte(0x58 | encode(MCReg::RBP));
+	// ret
 	write_byte(0xc3);
 
 	return tl::expected<void, Error>();

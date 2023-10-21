@@ -81,7 +81,6 @@ tl::expected<void, Error> Interpreter::run() {
 	auto inst = get_inst();
 	while (true) {
 		_inst_idx += 1;
-		std::cout << *inst << "\n";
 
 		switch (inst->_kind) {
 			case InstrKind::IK_LOADIMM: {
